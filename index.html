@@ -2,198 +2,132 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>College Print & Spiral Binding</title>
+<title>Print Price Calculator</title>
 
-<!-- PDF.JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
 <style>
 body{
-    margin:0;
-    font-family:Arial, sans-serif;
+    font-family: Arial, sans-serif;
     background:#f4f6f8;
 }
-.section{
-    display:none;
-    min-height:100vh;
-    padding:30px;
-}
-.active{
-    display:block;
-}
 .container{
-    max-width:400px;
+    max-width:380px;
+    margin:40px auto;
     background:#fff;
-    margin:auto;
     padding:25px;
     border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-.center{
-    text-align:center;
-}
-input,select,button{
-    width:100%;
-    padding:10px;
-    margin:8px 0;
-    border-radius:5px;
-    border:1px solid #ccc;
 }
 button{
-    background:#007bff;
-    color:white;
-    font-size:16px;
-    border:none;
-    cursor:pointer;
-}
-button:hover{
-    background:#0056b3;
-}
-.price{
-    font-size:22px;
-    color:green;
+    width:100%;
+    padding:10px;
     margin:10px 0;
+    border:none;
+    border-radius:5px;
+    background:#007bff;
+    color:#fff;
+    font-size:16px;
 }
-.qr{
-    width:200px;
-    margin:15px auto;
-    display:block;
-}
+.whatsapp{background:#25D366;}
+.qr{width:200px;display:block;margin:10px auto;}
 </style>
 </head>
 
 <body>
 
-<!-- PAGE 1 : LANDING -->
-<div class="section active" id="page1">
-    <div class="container center">
-        <h2>B/W Laser Printing & Neat Spiral Binding for College Students</h2>
-        <p>
-            We are college students providing reliable, affordable and quick
-            printout & spiral binding services for classmates, friends and hostel students.
-        </p>
-        <button onclick="goToOrder()">Start an Order</button>
-    </div>
+<div class="container">
+<h2>Print Price Calculator</h2>
+
+<input type="file" id="file" accept=".pdf,image/*" onchange="countPages()">
+
+<select id="binding">
+    <option value="no">Spiral Binding - No</option>
+    <option value="yes">Spiral Binding - Yes (+₹30)</option>
+</select>
+
+<button onclick="calculate()">Calculate</button>
+
+<div id="result" style="display:none;text-align:center;">
+    <p>Pages: <span id="pages"></span></p>
+    <p>Spiral: <span id="spiral"></span></p>
+    <p><b>Total: ₹<span id="price"></span></b></p>
+
+    <img id="qrImg" class="qr">
+    <button class="whatsapp" onclick="shareOnWhatsApp()">Send QR on WhatsApp</button>
+</div>
 </div>
 
-<!-- PAGE 2 : ORDER FORM -->
-<div class="section" id="page2">
-    <div class="container">
-        <h2>Place Your Order</h2>
-
-        <input type="text" id="name" placeholder="Your Name">
-        <input type="number" id="mobile" placeholder="Mobile Number">
-
-        <input type="file" id="file" accept=".pdf,image/*" onchange="countPages()">
-
-        <select id="binding">
-            <option value="no">Spiral Binding - No</option>
-            <option value="yes">Spiral Binding - Yes (+₹30)</option>
-        </select>
-
-        <button onclick="calculate()">Calculate Price</button>
-    </div>
-</div>
-
-<!-- PAGE 3 : PRICE + PAYMENT -->
-<div class="section" id="page3">
-    <div class="container center">
-        <h2>Order Summary</h2>
-
-        <p>Pages: <b><span id="showPages"></span></b></p>
-        <p>Spiral Binding: <b><span id="showBinding"></span></b></p>
-
-        <div class="price">Total Price: ₹<span id="finalPrice"></span></div>
-
-        <p>Scan & Pay</p>
-        <img id="qrImage" class="qr">
-
-        <button onclick="sendWhatsApp()">Send Order on WhatsApp</button>
-    </div>
-</div>
+<canvas id="canvas" width="300" height="420" style="display:none;"></canvas>
 
 <script>
-let autoPages = 0;
-let orderData = {};
+let autoPages=0, finalPrice=0, spiralText="";
 
-// PAGE SWITCH
-function goToOrder(){
-    document.getElementById("page1").classList.remove("active");
-    document.getElementById("page2").classList.add("active");
-}
-
-// AUTO PAGE COUNT
 function countPages(){
-    const file = document.getElementById("file").files[0];
-    if(!file) return;
-
-    if(file.type.startsWith("image/")){
-        autoPages = 1;
-        return;
-    }
-
-    if(file.type === "application/pdf"){
-        const reader = new FileReader();
-        reader.onload = function(){
-            const typedarray = new Uint8Array(this.result);
-            pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                autoPages = pdf.numPages;
+    let f=document.getElementById("file").files[0];
+    if(!f) return;
+    if(f.type.startsWith("image/")) autoPages=1;
+    else{
+        let r=new FileReader();
+        r.onload=e=>{
+            pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise.then(pdf=>{
+                autoPages=pdf.numPages;
             });
         };
-        reader.readAsArrayBuffer(file);
+        r.readAsArrayBuffer(f);
     }
 }
 
-// PRICE + QR
 function calculate(){
-    let name = document.getElementById("name").value;
-    let mobile = document.getElementById("mobile").value;
-    let binding = document.getElementById("binding").value;
+    if(autoPages===0){alert("Upload file first");return;}
+    let b=document.getElementById("binding").value;
+    finalPrice=autoPages*4;
+    spiralText = (b==="yes") ? "Yes" : "No";
+    if(b==="yes") finalPrice+=30;
 
-    if(name=="" || mobile=="" || autoPages===0){
-        alert("Please fill details and upload file");
-        return;
-    }
+    document.getElementById("pages").innerText=autoPages;
+    document.getElementById("spiral").innerText=spiralText;
+    document.getElementById("price").innerText=finalPrice;
 
-    let price = autoPages * 4;
-    if(binding === "yes") price += 30;
+    let upi=`upi://pay?pa=adityadhali@fam&pn=Print&am=${finalPrice}&cu=INR`;
+    document.getElementById("qrImg").src=
+      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upi)}`;
 
-    orderData = {name, mobile, pages:autoPages, binding, price};
-
-    document.getElementById("finalPrice").innerText = price;
-    document.getElementById("showPages").innerText = autoPages;
-    document.getElementById("showBinding").innerText = binding;
-
-    // 🔥 DYNAMIC UPI QR
-    let upiID = "adityadhali@fam";
-    let payeeName = "College Print";
-    let upiLink = `upi://pay?pa=${upiID}&pn=${payeeName}&am=${price}&cu=INR`;
-
-    document.getElementById("qrImage").src =
-      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
-
-    document.getElementById("page2").classList.remove("active");
-    document.getElementById("page3").classList.add("active");
+    document.getElementById("result").style.display="block";
 }
 
-// WHATSAPP (TEXT ONLY)
-function sendWhatsApp(){
-    let msg =
-`New Print Order 📄
+async function shareOnWhatsApp(){
+    let canvas=document.getElementById("canvas");
+    let ctx=canvas.getContext("2d");
 
-Name: ${orderData.name}
-Mobile: ${orderData.mobile}
-Pages: ${orderData.pages}
-Spiral Binding: ${orderData.binding}
-Total Price: ₹${orderData.price}
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,300,420);
 
-Payment will be done via UPI QR`;
+    ctx.fillStyle="#000";
+    ctx.font="16px Arial";
+    ctx.fillText("Print Order Details",70,30);
+    ctx.fillText("Pages: "+autoPages,20,70);
+    ctx.fillText("Spiral: "+spiralText,20,100);
+    ctx.fillText("Total: ₹"+finalPrice,20,130);
 
-    let whatsappNumber = "916398960542";
-    window.open(
-        "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(msg),
-        "_blank"
-    );
+    let img=new Image();
+    img.crossOrigin="anonymous";
+    img.src=document.getElementById("qrImg").src;
+
+    img.onload=async ()=>{
+        ctx.drawImage(img,50,160,200,200);
+
+        canvas.toBlob(async blob=>{
+            let file=new File([blob],"order.png",{type:"image/png"});
+            if(navigator.canShare){
+                await navigator.share({
+                    files:[file],
+                    text:`Your order details:\nPages: ${autoPages}\nSpiral: ${spiralText}\nTotal: ₹${finalPrice}\nPlease pay via QR and send screenshot.`
+                });
+            }else{
+                alert("Sharing not supported on this device");
+            }
+        });
+    };
 }
 </script>
 
