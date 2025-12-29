@@ -51,8 +51,9 @@ img{
 <input type="file" id="file" accept=".pdf,image/*" onchange="countPages()">
 
 <select id="binding">
-    <option value="no">Spiral Binding - No</option>
-    <option value="yes">Spiral Binding - Yes (+₹30)</option>
+    <option value="no">Printing Only (No Spiral)</option>
+    <option value="yes">Printing + Spiral (+₹30)</option>
+    <option value="only">Only Spiral Binding (₹30)</option>
 </select>
 
 <button onclick="calculate()">Calculate Price</button>
@@ -94,16 +95,27 @@ function countPages(){
 
 // ===== CALCULATE PRICE =====
 function calculate(){
-    if(pages === 0){
-        alert("Please upload PDF or Image first");
-        return;
-    }
-
     const binding = document.getElementById("binding").value;
-    spiralText = binding === "yes" ? "Yes" : "No";
 
-    price = pages * 4;
-    if(binding === "yes") price += 30;
+    // ONLY SPIRAL CASE
+    if(binding === "only"){
+        pages = 0;
+        spiralText = "Only Spiral";
+        price = 30;
+    }
+    else {
+        if(pages === 0){
+            alert("Please upload PDF or Image first");
+            return;
+        }
+
+        spiralText = (binding === "yes") ? "Yes" : "No";
+        price = pages * 4;
+
+        if(binding === "yes"){
+            price += 30;
+        }
+    }
 
     document.getElementById("pages").innerText = pages;
     document.getElementById("spiral").innerText = spiralText;
@@ -121,51 +133,48 @@ function sendWhatsApp(){
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    // Background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0,0,300,450);
 
-    // Heading
     ctx.fillStyle = "#0d47a1";
     ctx.font = "bold 18px Arial";
     ctx.textAlign = "center";
     ctx.fillText("Print Order Details",150,35);
 
-    // Divider
     ctx.strokeStyle="#cccccc";
     ctx.beginPath();
     ctx.moveTo(20,50);
     ctx.lineTo(280,50);
     ctx.stroke();
 
-    // Details
     ctx.textAlign="left";
     ctx.fillStyle="#000";
     ctx.font="16px Arial";
-    ctx.fillText(`Pages: ${pages} × 4`,20,90);
-    ctx.fillText(
-        spiralText==="Yes" ? "Spiral: Yes (+30)" : "Spiral: No (+0)",
-        20,120
-    );
 
-    // Total
+    if(spiralText === "Only Spiral"){
+        ctx.fillText("Service: Only Spiral Binding",20,90);
+    } else {
+        ctx.fillText(`Pages: ${pages} × 4`,20,90);
+        ctx.fillText(
+            spiralText==="Yes" ? "Spiral: Yes (+30)" : "Spiral: No (+0)",
+            20,120
+        );
+    }
+
     ctx.fillStyle="#2e7d32";
     ctx.font="bold 18px Arial";
     ctx.fillText(`Total Amount: ₹${price}`,20,160);
 
-    // Note
     ctx.fillStyle="#555";
     ctx.font="13px Arial";
     ctx.fillText("Scan QR to Pay",20,185);
 
-    // QR IMAGE
     const img = new Image();
     img.crossOrigin="anonymous";
     img.src = qrImg.src;
 
     img.onload = () => {
 
-        // Rounded QR Box
         const qrX=50, qrY=210, qrSize=200, radius=16;
 
         ctx.fillStyle="#f5faff";
