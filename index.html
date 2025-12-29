@@ -1,93 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Print Calculator</title>
+<title>Print Price Calculator</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f6f8}
-.box{max-width:380px;margin:30px auto;background:#fff;padding:20px;border-radius:10px}
-button{width:100%;padding:10px;margin:10px 0;background:#007bff;color:#fff;border:none;border-radius:5px}
-.whatsapp{background:#25D366}
-img{display:block;margin:10px auto}
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+}
+.container{
+    max-width:380px;
+    margin:30px auto;
+    background:#ffffff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+h2{text-align:center;}
+input,select,button{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+button{
+    background:#007bff;
+    color:#fff;
+    font-size:16px;
+    border:none;
+}
+.whatsapp{
+    background:#25D366;
+}
+img{
+    display:block;
+    margin:10px auto;
+}
 </style>
 </head>
 
 <body>
 
-<div class="box">
-<h3>Print Price Calculator</h3>
+<div class="container">
+<h2>Print Price Calculator</h2>
 
 <input type="file" id="file" accept=".pdf,image/*" onchange="countPages()">
-<select id="spiral">
-<option value="no">Spiral - No</option>
-<option value="yes">Spiral - Yes (+₹30)</option>
+
+<select id="binding">
+    <option value="no">Spiral Binding - No</option>
+    <option value="yes">Spiral Binding - Yes (+₹30)</option>
 </select>
 
-<button onclick="calculate()">Calculate</button>
+<button onclick="calculate()">Calculate Price</button>
 
-<div id="out" style="display:none;text-align:center">
-<p>Pages: <span id="p"></span></p>
-<p>Spiral: <span id="s"></span></p>
-<p><b>Total: ₹<span id="t"></span></b></p>
-<img id="qr" width="180">
-<button class="whatsapp" onclick="sendWhatsApp()">Send Message + QR</button>
+<div id="result" style="display:none;text-align:center;">
+    <p>Pages: <span id="pages"></span></p>
+    <p>Spiral: <span id="spiral"></span></p>
+    <p><b>Total: ₹<span id="price"></span></b></p>
+
+    <img id="qrImg" width="180">
+
+    <button class="whatsapp" onclick="sendWhatsApp()">Send Message + QR</button>
 </div>
 </div>
 
-<canvas id="canvas" width="300" height="420" style="display:none"></canvas>
+<canvas id="canvas" width="300" height="450" style="display:none;"></canvas>
 
 <script>
-let pages=0, price=0, spiral="";
+let pages = 0;
+let price = 0;
+let spiralText = "";
 
+// ===== PAGE COUNT =====
 function countPages(){
- let f=file.files[0];
- if(!f) return;
- if(f.type.startsWith("image/")) pages=1;
- else{
-  let r=new FileReader();
-  r.onload=e=>{
-   pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise.then(p=>pages=p.numPages);
-  };
-  r.readAsArrayBuffer(f);
- }
+    const f = file.files[0];
+    if(!f) return;
+
+    if(f.type.startsWith("image/")){
+        pages = 1;
+    } else {
+        const r = new FileReader();
+        r.onload = e => {
+            pdfjsLib.getDocument(new Uint8Array(e.target.result))
+            .promise.then(pdf => pages = pdf.numPages);
+        };
+        r.readAsArrayBuffer(f);
+    }
 }
 
+// ===== CALCULATE PRICE =====
 function calculate(){
- if(pages==0){alert("Upload file");return;}
- spiral = spiralSelect = spiral.value=="yes"?"Yes":"No";
- price = pages*4 + (spiral=="Yes"?30:0);
+    if(pages === 0){
+        alert("Please upload PDF or Image first");
+        return;
+    }
 
- p.innerText=pages;
- s.innerText=spiral;
- t.innerText=price;
+    const binding = document.getElementById("binding").value;
+    spiralText = binding === "yes" ? "Yes" : "No";
 
- let upi=`upi://pay?pa=adityadhali@fam&pn=Print&am=${price}&cu=INR`;
- qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upi)}`;
- out.style.display="block";
+    price = pages * 4;
+    if(binding === "yes") price += 30;
+
+    document.getElementById("pages").innerText = pages;
+    document.getElementById("spiral").innerText = spiralText;
+    document.getElementById("price").innerText = price;
+
+    const upi = `upi://pay?pa=adityadhali@fam&pn=Print%20Service&am=${price}&cu=INR`;
+    qrImg.src =
+      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upi)}`;
+
+    document.getElementById("result").style.display = "block";
 }
 
+// ===== WHATSAPP SHARE =====
 function sendWhatsApp(){
- let c=canvas,ctx=c.getContext("2d");
- ctx.fillStyle="#fff";ctx.fillRect(0,0,300,420);
- ctx.fillStyle="#000";ctx.font="16px Arial";
- ctx.fillText("Print Order Details",70,30);
- ctx.fillText("Pages: "+pages,20,70);
- ctx.fillText("Spiral: "+spiral,20,100);
- ctx.fillText("Total: ₹"+price,20,130);
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
- let img=new Image(); img.crossOrigin="anonymous"; img.src=qr.src;
- img.onload=()=>{
-  ctx.drawImage(img,50,160,200,200);
-  c.toBlob(b=>{
-   let file=new File([b],"order.png",{type:"image/png"});
-   navigator.share({
-    files:[file],
-    text:`Your order details:\nPages: ${pages}\nSpiral: ${spiral}\nTotal Amount: ₹${price}\nPlease pay via QR and send screenshot.`
-   });
-  });
- }
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0,0,300,450);
+
+    // Heading
+    ctx.fillStyle = "#0d47a1";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Print Order Details",150,35);
+
+    // Divider
+    ctx.strokeStyle="#cccccc";
+    ctx.beginPath();
+    ctx.moveTo(20,50);
+    ctx.lineTo(280,50);
+    ctx.stroke();
+
+    // Details
+    ctx.textAlign="left";
+    ctx.fillStyle="#000";
+    ctx.font="16px Arial";
+    ctx.fillText(`Pages: ${pages} × 4`,20,90);
+    ctx.fillText(
+        spiralText==="Yes" ? "Spiral: Yes (+30)" : "Spiral: No (+0)",
+        20,120
+    );
+
+    // Total
+    ctx.fillStyle="#2e7d32";
+    ctx.font="bold 18px Arial";
+    ctx.fillText(`Total Amount: ₹${price}`,20,160);
+
+    // Note
+    ctx.fillStyle="#555";
+    ctx.font="13px Arial";
+    ctx.fillText("Scan QR to Pay",20,185);
+
+    // QR IMAGE
+    const img = new Image();
+    img.crossOrigin="anonymous";
+    img.src = qrImg.src;
+
+    img.onload = () => {
+
+        // Rounded QR Box
+        const qrX=50, qrY=210, qrSize=200, radius=16;
+
+        ctx.fillStyle="#f5faff";
+        ctx.strokeStyle="#0d47a1";
+        ctx.lineWidth=2;
+
+        ctx.beginPath();
+        ctx.moveTo(qrX+radius,qrY);
+        ctx.lineTo(qrX+qrSize-radius,qrY);
+        ctx.quadraticCurveTo(qrX+qrSize,qrY,qrX+qrSize,qrY+radius);
+        ctx.lineTo(qrX+qrSize,qrY+qrSize-radius);
+        ctx.quadraticCurveTo(qrX+qrSize,qrY+qrSize,qrX+qrSize-radius,qrY+qrSize);
+        ctx.lineTo(qrX+radius,qrY+qrSize);
+        ctx.quadraticCurveTo(qrX,qrY+qrSize,qrX,qrY+qrSize-radius);
+        ctx.lineTo(qrX,qrY+radius);
+        ctx.quadraticCurveTo(qrX,qrY,qrX+radius,qrY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.drawImage(img,qrX+10,qrY+10,qrSize-20,qrSize-20);
+
+        canvas.toBlob(blob=>{
+            const file = new File([blob],"print-order.png",{type:"image/png"});
+
+            navigator.share({
+                files:[file],
+                text:
+`Your order details:
+Pages: ${pages}
+Spiral: ${spiralText}
+Total Amount: ₹${price}
+
+Please pay via QR and send screenshot.`
+            });
+        });
+    };
 }
 </script>
 
