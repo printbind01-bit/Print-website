@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>College Print & Spiral Binding</title>
+
+<!-- PDF.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f4f6f8;
+}
+.section{
+    display:none;
+    min-height:100vh;
+    padding:30px;
+}
+.active{
+    display:block;
+}
+.container{
+    max-width:400px;
+    background:#fff;
+    margin:auto;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+.center{
+    text-align:center;
+}
+input,select,button{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+button{
+    background:#007bff;
+    color:white;
+    font-size:16px;
+    border:none;
+    cursor:pointer;
+}
+button:hover{
+    background:#0056b3;
+}
+.price{
+    font-size:22px;
+    color:green;
+    margin:10px 0;
+}
+.qr{
+    width:200px;
+    margin:15px auto;
+    display:block;
+}
+</style>
+</head>
+
+<body>
+
+<!-- PAGE 1 : LANDING -->
+<div class="section active" id="page1">
+    <div class="container center">
+        <h2>B/W Laser Printing & Neat Spiral Binding for College Students</h2>
+        <p>
+            We are college students providing reliable, affordable and quick
+            printout & spiral binding services for classmates, friends and hostel students.
+        </p>
+        <button onclick="goToOrder()">Start an Order</button>
+    </div>
+</div>
+
+<!-- PAGE 2 : ORDER FORM -->
+<div class="section" id="page2">
+    <div class="container">
+        <h2>Place Your Order</h2>
+
+        <input type="text" id="name" placeholder="Your Name">
+        <input type="number" id="mobile" placeholder="Mobile Number">
+
+        <input type="file" id="file" accept=".pdf,image/*" onchange="countPages()">
+
+        <select id="binding">
+            <option value="no">Spiral Binding - No</option>
+            <option value="yes">Spiral Binding - Yes (+₹30)</option>
+        </select>
+
+        <button onclick="calculate()">Calculate Price</button>
+    </div>
+</div>
+
+<!-- PAGE 3 : PRICE + PAYMENT -->
+<div class="section" id="page3">
+    <div class="container center">
+        <h2>Order Summary</h2>
+
+        <p>Pages: <b><span id="showPages"></span></b></p>
+        <p>Spiral Binding: <b><span id="showBinding"></span></b></p>
+
+        <div class="price">Total Price: ₹<span id="finalPrice"></span></div>
+
+        <p>Scan & Pay</p>
+        <img id="qrImage" class="qr">
+
+        <button onclick="sendWhatsApp()">Send Order on WhatsApp</button>
+    </div>
+</div>
+
+<script>
+let autoPages = 0;
+let orderData = {};
+
+// PAGE SWITCH
+function goToOrder(){
+    document.getElementById("page1").classList.remove("active");
+    document.getElementById("page2").classList.add("active");
+}
+
+// AUTO PAGE COUNT
+function countPages(){
+    const file = document.getElementById("file").files[0];
+    if(!file) return;
+
+    // IMAGE = 1 PAGE
+    if(file.type.startsWith("image/")){
+        autoPages = 1;
+        return;
+    }
+
+    // PDF PAGE COUNT
+    if(file.type === "application/pdf"){
+        const reader = new FileReader();
+        reader.onload = function(){
+            const typedarray = new Uint8Array(this.result);
+            pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                autoPages = pdf.numPages;
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+
+// PRICE + QR
+function calculate(){
+    let name = document.getElementById("name").value;
+    let mobile = document.getElementById("mobile").value;
+    let binding = document.getElementById("binding").value;
+
+    if(name=="" || mobile=="" || autoPages === 0){
+        alert("Please fill details and upload file");
+        return;
+    }
+
+    let price = autoPages * 4;
+    if(binding === "yes"){
+        price += 30;
+    }
+
+    orderData = {name, mobile, pages:autoPages, binding, price};
+
+    document.getElementById("finalPrice").innerText = price;
+    document.getElementById("showPages").innerText = autoPages;
+    document.getElementById("showBinding").innerText = binding;
+
+    // 🔥 DYNAMIC UPI QR (UPDATED)
+    let upiID = "adityadhali@fam";
+    let payeeName = "College Print";
+    let upiLink = `upi://pay?pa=${upiID}&pn=${payeeName}&am=${price}&cu=INR`;
+
+    document.getElementById("qrImage").src =
+      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
+
+    document.getElementById("page2").classList.remove("active");
+    document.getElementById("page3").classList.add("active");
+}
+
+// WHATSAPP MESSAGE (UPDATED NUMBER)
+function sendWhatsApp(){
+    let msg =
+`New Print Order 📄
+
+Name: ${orderData.name}
+Mobile: ${orderData.mobile}
+Pages: ${orderData.pages}
+Spiral Binding: ${orderData.binding}
+Total Price: ₹${orderData.price}
+
+Payment done – QR screenshot attached`;
+
+    let whatsappNumber = "916398960542";
+    window.open(
+        "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(msg),
+        "_blank"
+    );
+}
+</script>
+
+</body>
+</html>
