@@ -59,16 +59,12 @@ button:hover{
     margin:15px auto;
     display:block;
 }
-.note{
-    font-size:13px;
-    color:#666;
-}
 </style>
 </head>
 
 <body>
 
-<!-- PAGE 1 -->
+<!-- PAGE 1 : LANDING -->
 <div class="section active" id="page1">
     <div class="container center">
         <h2>B/W Laser Printing & Neat Spiral Binding for College Students</h2>
@@ -80,7 +76,7 @@ button:hover{
     </div>
 </div>
 
-<!-- PAGE 2 -->
+<!-- PAGE 2 : ORDER FORM -->
 <div class="section" id="page2">
     <div class="container">
         <h2>Place Your Order</h2>
@@ -99,7 +95,7 @@ button:hover{
     </div>
 </div>
 
-<!-- PAGE 3 -->
+<!-- PAGE 3 : PRICE + PAYMENT -->
 <div class="section" id="page3">
     <div class="container center">
         <h2>Order Summary</h2>
@@ -111,10 +107,6 @@ button:hover{
 
         <p>Scan & Pay</p>
         <img id="qrImage" class="qr">
-
-        <!-- 🔥 NEW PAYMENT SCREENSHOT UPLOAD -->
-        <input type="file" id="paymentShot" accept="image/*">
-        <div class="note">Upload payment screenshot before sending order</div>
 
         <button onclick="sendWhatsApp()">Send Order on WhatsApp</button>
     </div>
@@ -184,14 +176,8 @@ function calculate(){
     document.getElementById("page3").classList.add("active");
 }
 
-// 🔥 WHATSAPP SHARE WITH SCREENSHOT
+// WHATSAPP (TEXT ONLY)
 function sendWhatsApp(){
-    const shot = document.getElementById("paymentShot").files[0];
-    if(!shot){
-        alert("Please upload payment screenshot first");
-        return;
-    }
-
     let msg =
 `New Print Order 📄
 
@@ -201,17 +187,13 @@ Pages: ${orderData.pages}
 Spiral Binding: ${orderData.binding}
 Total Price: ₹${orderData.price}
 
-Payment screenshot attached`;
+Payment will be done via UPI QR`;
 
-    if(navigator.canShare && navigator.canShare({ files: [shot] })){
-        navigator.share({
-            title: "Print Order Payment",
-            text: msg,
-            files: [shot]
-        });
-    } else {
-        alert("Your device does not support direct WhatsApp sharing. Please send manually.");
-    }
+    let whatsappNumber = "916398960542";
+    window.open(
+        "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(msg),
+        "_blank"
+    );
 }
 </script>
 
